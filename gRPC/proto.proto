@@ -7,8 +7,14 @@ message ChatMessage {
     string msg = 2;  
 }
 
+message UserDetails {
+    int32 clock = 1;
+    string username = 2;
+}
+
 message Empty {}
 
 service chitchat {
-    rpc broadcast (ChatMessage) return (Empty) {};
+    rpc post (ChatMessage) return (Empty) {};
+    rpc broadcast (UserDetails) return (stream ChatMessage) {};
 }

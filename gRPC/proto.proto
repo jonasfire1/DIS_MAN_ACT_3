@@ -15,6 +15,6 @@ message UserDetails {
 message Empty {}
 
 service chitchat {
-    rpc post (ChatMessage) return (Empty) {};
-    rpc broadcast (UserDetails) return (stream ChatMessage) {};
+    rpc post (ChatMessage) returns (Empty);
+    rpc broadcast (UserDetails) returns (stream ChatMessage);
 }

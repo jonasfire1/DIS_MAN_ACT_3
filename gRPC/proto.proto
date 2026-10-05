@@ -1,0 +1,14 @@
+syntax = "proto3";
+option go_package = "handin3/grpc/proto";
+
+
+message ChatMessage {
+    int32 clock = 1;
+    string msg = 2;  
+}
+
+message Empty {}
+
+service chitchat {
+    rpc broadcast (ChatMessage) return (Empty) {};
+}

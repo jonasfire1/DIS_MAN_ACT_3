@@ -1,4 +1,4 @@
-package server
+package main
 
 import (
 	pb "handin3/gRPC"
@@ -11,10 +11,11 @@ import (
 
 type ChitChatServer struct {
 	pb.UnimplementedChitchatServer
-	Clock      int32
-	Component  []string
-	EventType  []string
-	Identifier []int32
+	ActiveStreams []grpc.ServerStreamingServer[pb.ChatMessage]
+	Clock         int32
+	Component     []string
+	EventType     []string
+	Identifier    []int32
 }
 
 func main() {
@@ -24,7 +25,10 @@ func main() {
 }
 
 func (s *ChitChatServer) Broadcast(ud *pb.UserDetails, sss grpc.ServerStreamingServer[pb.ChatMessage]) error {
-	sss.SendMsg(pb.ChatMessage{Clock: ud.Clock, Msg: ud.Username + " has joined the chat"})
+	sss.Send(&pb.ChatMessage{Clock: 1, Msg: "Hello"})
+	log.Println("sent msg")
+
+	s.ActiveStreams = append(s.ActiveStreams, sss)
 	// sss is supposed to be added to some kind of collection
 	return nil
 }

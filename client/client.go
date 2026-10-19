@@ -1,4 +1,4 @@
-package client
+package main
 
 import (
 	"context"
@@ -17,13 +17,15 @@ func main() {
 	client := pb.NewChitchatClient(conn)
 
 	ssc, err := client.Broadcast(context.Background(), &pb.UserDetails{})
-
+	log.Println("printing")
 	for {
 		msg, err := ssc.Recv()
 		if err != nil {
+			log.Fatalf(err.Error())
 			break
 		}
-		msg // msg is was recieved and is supposed to be handled here
+		log.Println(msg.Msg)
+		// msg is was recieved and is supposed to be handled here
 	}
-
+	log.Println("exit")
 }

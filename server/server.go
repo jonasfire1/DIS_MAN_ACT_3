@@ -1,7 +1,8 @@
 package server
 
 import (
-	proto "handin3/gRPC"
+	"context"
+	pb "handin3/gRPC"
 	"log"
 	"net"
 	"strconv"
@@ -10,7 +11,7 @@ import (
 )
 
 type ChitChatServer struct {
-	proto.UnimplementedChitchatServer
+	pb.UnimplementedChitchatServer
 	Time       []int32
 	Component  []string
 	EventType  []string
@@ -23,6 +24,16 @@ func main() {
 	server.start_server()
 }
 
+func (s *ChitChatServer) Broadcast(ud pb.UserDetails, sss grpc.ServerStreamingServer[pb.ChatMessage]) error {
+	sss.SendMsg(pb.ChatMessage{Clock: 1, Msg: "Hello"})
+	return nil
+}
+
+func (s *ChitChatServer) Post(ctx context.Context, cmsg *pb.ChatMessage) (*pb.Empty, error) {
+	response := pb.Empty{}
+	return &response, nil
+}
+
 func (s *ChitChatServer) start_server() {
 	grpcServer := grpc.NewServer()
 	listener, err := net.Listen("tcp", ":5050")
@@ -30,7 +41,7 @@ func (s *ChitChatServer) start_server() {
 		log.Fatalf("%s", "net.listen failed:"+err.Error())
 	}
 
-	proto.RegisterChitchatServer(grpcServer, s)
+	pb.RegisterChitchatServer(grpcServer, s)
 
 	err = grpcServer.Serve(listener)
 

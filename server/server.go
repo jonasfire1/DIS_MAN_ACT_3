@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	pb "handin3/gRPC"
 	"log"
 	"net"
@@ -12,7 +11,7 @@ import (
 
 type ChitChatServer struct {
 	pb.UnimplementedChitchatServer
-	Time       []int32
+	Clock      int32
 	Component  []string
 	EventType  []string
 	Identifier []int32
@@ -25,15 +24,14 @@ func main() {
 }
 
 func (s *ChitChatServer) Broadcast(ud *pb.UserDetails, sss grpc.ServerStreamingServer[pb.ChatMessage]) error {
-	sss.SendMsg(pb.ChatMessage{Clock: 1, Msg: "Hello"})
+	sss.SendMsg(pb.ChatMessage{Clock: ud.Clock, Msg: ud.Username + " has joined the chat"})
 	// sss is supposed to be added to some kind of collection
 	return nil
 }
 
-func (s *ChitChatServer) Post(ctx context.Context, cmsg *pb.ChatMessage) (*pb.Empty, error) {
-	response := pb.Empty{}
+func (s *ChitChatServer) Post(cmsg *pb.ChatMessage, stream grpc.ServerStreamingServer[pb.ChatMessage]) error {
 	// WIP call some kind of method that asynchronosly starts sending the new post to the different ServerStreamingServer
-	return &response, nil
+	return stream.Send(&pb.ChatMessage{Clock: cmsg.Clock, Username: cmsg.Username, Msg: cmsg.Msg})
 }
 
 func (s *ChitChatServer) start_server() {

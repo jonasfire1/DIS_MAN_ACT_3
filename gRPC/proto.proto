@@ -4,7 +4,8 @@ option go_package = "handin3/grpc/proto";
 
 message ChatMessage {
     int32 clock = 1;
-    string msg = 2;  
+    string username = 2;
+    string msg = 3;
 }
 
 message UserDetails {
@@ -15,6 +16,6 @@ message UserDetails {
 message Empty {}
 
 service chitchat {
-    rpc post (ChatMessage) returns (Empty);
+    rpc post (ChatMessage) returns (stream ChatMessage);
     rpc broadcast (UserDetails) returns (stream ChatMessage);
 }

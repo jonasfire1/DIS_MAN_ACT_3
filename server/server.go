@@ -24,13 +24,15 @@ func main() {
 	server.start_server()
 }
 
-func (s *ChitChatServer) Broadcast(ud pb.UserDetails, sss grpc.ServerStreamingServer[pb.ChatMessage]) error {
+func (s *ChitChatServer) Broadcast(ud *pb.UserDetails, sss grpc.ServerStreamingServer[pb.ChatMessage]) error {
 	sss.SendMsg(pb.ChatMessage{Clock: 1, Msg: "Hello"})
+	// sss is supposed to be added to some kind of collection
 	return nil
 }
 
 func (s *ChitChatServer) Post(ctx context.Context, cmsg *pb.ChatMessage) (*pb.Empty, error) {
 	response := pb.Empty{}
+	// WIP call some kind of method that asynchronosly starts sending the new post to the different ServerStreamingServer
 	return &response, nil
 }
 

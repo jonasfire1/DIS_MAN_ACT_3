@@ -1,9 +1,9 @@
 package client
 
 import (
+	"context"
+	pb "handin3/gRPC"
 	"log"
-
-	proto "handin3/gRPC"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -14,5 +14,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("Connection failure")
 	}
-	client := proto.NewChitchatClient(conn)
+	client := pb.NewChitchatClient(conn)
+
+	ssc, err := client.Broadcast(context.Background(), &pb.UserDetails{})
+
+	for {
+		msg, err := ssc.Recv()
+		if err != nil {
+			break
+		}
+		msg // msg is was recieved and is supposed to be handled here
+	}
+
 }

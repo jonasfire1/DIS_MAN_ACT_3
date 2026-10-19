@@ -4,13 +4,17 @@ import (
 	proto "handin3/gRPC"
 	"log"
 	"net"
+	"strconv"
 
 	"google.golang.org/grpc"
 )
 
 type ChitChatServer struct {
 	proto.UnimplementedChitchatServer
-	//needs more var's fill in later
+	Time       []int32
+	Component  []string
+	EventType  []string
+	Identifier []int32
 }
 
 func main() {
@@ -34,4 +38,9 @@ func (s *ChitChatServer) start_server() {
 		log.Fatalf("%s", "net.listen failed:"+err.Error())
 	}
 
+}
+
+func (*ChitChatServer) log(TIME int32, COMPONENT string, EVENTTYPE string, IDENTIFIER int32) {
+	log.SetFlags(0)
+	log.Println(strconv.FormatInt(int64(TIME), 10) + " " + COMPONENT + " " + strconv.FormatInt(int64(IDENTIFIER), 10) + " " + EVENTTYPE)
 }

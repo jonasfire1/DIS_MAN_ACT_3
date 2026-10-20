@@ -5,57 +5,187 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"sync"
+	"unicode/utf8"
 
 	"google.golang.org/grpc"
 )
 
+type Client struct {
+	Username string
+	Messages chan *pb.ChatMessage
+}
+
 type ChitChatServer struct {
 	pb.UnimplementedChitchatServer
-	ActiveStreams []grpc.ServerStreamingServer[pb.ChatMessage]
-	Clock         int32
-	Component     []string
-	EventType     []string
-	Identifier    []int32
+
+	Clients map[string]*Client
+	Clock   int32
+	Mutex   sync.Mutex
 }
 
 func main() {
-	server := &ChitChatServer{ //please fill this out later when more var's are added
+	server := &ChitChatServer{
+		Clients: make(map[string]*Client),
 	}
-	server.start_server()
+
+	server.startServer()
 }
 
-func (s *ChitChatServer) Broadcast(ud *pb.UserDetails, sss grpc.ServerStreamingServer[pb.ChatMessage]) error {
-	sss.Send(&pb.ChatMessage{Clock: 1, Msg: "Hello"})
-	log.Println("sent msg")
+func (s *ChitChatServer) Broadcast(
+	user *pb.UserDetails,
+	stream grpc.ServerStreamingServer[pb.ChatMessage],
+) error {
+	client := &Client{
+		Username: user.Username,
+		Messages: make(chan *pb.ChatMessage, 100),
+	}
 
-	s.ActiveStreams = append(s.ActiveStreams, sss)
-	// sss is supposed to be added to some kind of collection
-	return nil
+	s.Mutex.Lock()
+	s.Clients[user.Username] = client
+	s.Mutex.Unlock()
+
+	log.Printf(
+		"Server CLIENT_CONNECTED Client=%s",
+		user.Username,
+	)
+
+	s.broadcast(
+		user.Clock,
+		user.Username,
+		"Participant "+user.Username+" joined Chit Chat",
+		true,
+	)
+
+	for {
+		select {
+		case message := <-client.Messages:
+			err := stream.Send(message)
+			if err != nil {
+				s.removeClient(user.Username)
+				return nil
+			}
+
+			log.Printf(
+				"Server MESSAGE_DELIVERED Client=%s LogicalTime=%d Message=%s",
+				user.Username,
+				message.Clock,
+				message.Msg,
+			)
+
+		case <-stream.Context().Done():
+			s.removeClient(user.Username)
+			return nil
+		}
+	}
 }
 
-func (s *ChitChatServer) Post(cmsg *pb.ChatMessage, stream grpc.ServerStreamingServer[pb.ChatMessage]) error {
-	// WIP call some kind of method that asynchronosly starts sending the new post to the different ServerStreamingServer
-	return stream.Send(&pb.ChatMessage{Clock: cmsg.Clock, Username: cmsg.Username, Msg: cmsg.Msg})
+func (s *ChitChatServer) Post(
+	message *pb.ChatMessage,
+	stream grpc.ServerStreamingServer[pb.ChatMessage],
+) error {
+	if !utf8.ValidString(message.Msg) {
+		return nil
+	}
+
+	if utf8.RuneCountInString(message.Msg) > 128 {
+		return nil
+	}
+
+	s.broadcast(
+		message.Clock,
+		message.Username,
+		message.Msg,
+		false,
+	)
+
+	return stream.Send(message)
 }
 
-func (s *ChitChatServer) start_server() {
-	grpcServer := grpc.NewServer()
+func (s *ChitChatServer) broadcast(
+	receivedClock int32,
+	username string,
+	text string,
+	includeTimeInMessage bool,
+) {
+	s.Mutex.Lock()
+
+	if receivedClock > s.Clock {
+		s.Clock = receivedClock
+	}
+
+	s.Clock++
+	logicalTime := s.Clock
+
+	if includeTimeInMessage {
+		text += " at logical time " +
+			strconv.FormatInt(int64(logicalTime), 10)
+	}
+
+	message := &pb.ChatMessage{
+		Clock:    logicalTime,
+		Username: username,
+		Msg:      text,
+	}
+
+	clients := make([]*Client, 0, len(s.Clients))
+
+	for _, client := range s.Clients {
+		clients = append(clients, client)
+	}
+
+	s.Mutex.Unlock()
+
+	log.Printf(
+		"Server MESSAGE_BROADCAST Client=%s LogicalTime=%d Message=%s",
+		username,
+		logicalTime,
+		text,
+	)
+
+	for _, client := range clients {
+		client.Messages <- message
+	}
+}
+
+func (s *ChitChatServer) removeClient(username string) {
+	s.Mutex.Lock()
+
+	if _, exists := s.Clients[username]; !exists {
+		s.Mutex.Unlock()
+		return
+	}
+
+	delete(s.Clients, username)
+	currentClock := s.Clock
+
+	s.Mutex.Unlock()
+
+	log.Printf(
+		"Server CLIENT_DISCONNECTED Client=%s",
+		username,
+	)
+
+	s.broadcast(
+		currentClock,
+		username,
+		"Participant "+username+" left Chit Chat",
+		true,
+	)
+}
+
+func (s *ChitChatServer) startServer() {
 	listener, err := net.Listen("tcp", ":5050")
 	if err != nil {
-		log.Fatalf("%s", "net.listen failed:"+err.Error())
+		log.Fatal(err)
 	}
 
+	grpcServer := grpc.NewServer()
 	pb.RegisterChitchatServer(grpcServer, s)
 
-	err = grpcServer.Serve(listener)
+	log.Println("Server SERVER_STARTED Port=5050")
 
-	if err != nil {
-		log.Fatalf("%s", "net.listen failed:"+err.Error())
+	if err := grpcServer.Serve(listener); err != nil {
+		log.Fatal(err)
 	}
-
-}
-
-func (*ChitChatServer) log(TIME int32, COMPONENT string, EVENTTYPE string, IDENTIFIER int32) {
-	log.SetFlags(0)
-	log.Println(strconv.FormatInt(int64(TIME), 10) + " " + COMPONENT + " " + strconv.FormatInt(int64(IDENTIFIER), 10) + " " + EVENTTYPE)
 }

@@ -1,31 +1,135 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	"fmt"
 	pb "handin3/gRPC"
+	"io"
 	"log"
+	"os"
+	"sync"
+	"unicode/utf8"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func main() {
-	conn, err := grpc.NewClient("localhost:5050", grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("Connection failure")
-	}
-	client := pb.NewChitchatClient(conn)
+type ChitChatClient struct {
+	Username string
+	Clock    int32
+	Mutex    sync.Mutex
+	Client   pb.ChitchatClient
+}
 
-	ssc, err := client.Broadcast(context.Background(), &pb.UserDetails{})
-	log.Println("printing")
-	for {
-		msg, err := ssc.Recv()
-		if err != nil {
-			log.Fatalf(err.Error())
-			break
-		}
-		log.Println(msg.Msg)
-		// msg is was recieved and is supposed to be handled here
+func main() {
+	if len(os.Args) < 2 {
+		log.Fatal("Run the client with: go run ./client <username>")
 	}
-	log.Println("exit")
+
+	conn, err := grpc.NewClient(
+		"localhost:5050",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	client := &ChitChatClient{
+		Username: os.Args[1],
+		Client:   pb.NewChitchatClient(conn),
+	}
+
+	stream, err := client.Client.Broadcast(
+		context.Background(),
+		&pb.UserDetails{
+			Clock:    client.Clock,
+			Username: client.Username,
+		},
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	go client.receiveMessages(stream)
+
+	scanner := bufio.NewScanner(os.Stdin)
+
+	fmt.Println("Write a message and press Enter:")
+
+	for scanner.Scan() {
+		message := scanner.Text()
+
+		if !utf8.ValidString(message) {
+			fmt.Println("The message must be valid UTF-8.")
+			continue
+		}
+
+		if utf8.RuneCountInString(message) > 128 {
+			fmt.Println("The message cannot exceed 128 characters.")
+			continue
+		}
+
+		client.sendMessage(message)
+	}
+}
+
+func (c *ChitChatClient) sendMessage(text string) {
+	c.Mutex.Lock()
+	c.Clock++
+	logicalTime := c.Clock
+	c.Mutex.Unlock()
+
+	stream, err := c.Client.Post(
+		context.Background(),
+		&pb.ChatMessage{
+			Clock:    logicalTime,
+			Username: c.Username,
+			Msg:      text,
+		},
+	)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	_, err = stream.Recv()
+	if err != nil && err != io.EOF {
+		log.Println(err)
+	}
+}
+
+func (c *ChitChatClient) receiveMessages(
+	stream grpc.ServerStreamingClient[pb.ChatMessage],
+) {
+	for {
+		message, err := stream.Recv()
+		if err != nil {
+			return
+		}
+
+		c.Mutex.Lock()
+
+		if message.Clock > c.Clock {
+			c.Clock = message.Clock
+		}
+
+		c.Clock++
+
+		c.Mutex.Unlock()
+
+		fmt.Printf(
+			"[Logical time %d] %s\n",
+			message.Clock,
+			message.Msg,
+		)
+
+		log.Printf(
+			"Client MESSAGE_RECEIVED Client=%s LogicalTime=%d Message=%s",
+			c.Username,
+			message.Clock,
+			message.Msg,
+		)
+	}
 }

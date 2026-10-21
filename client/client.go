@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	pb "handin3/gRPC"
-	"io"
 	"log"
 	"os"
 	"sync"
@@ -41,7 +40,7 @@ func main() {
 		Client:   pb.NewChitchatClient(conn),
 	}
 
-	stream, err := client.Client.Broadcast(
+	stream, err := client.Client.JoinBroadcast(
 		context.Background(),
 		&pb.UserDetails{
 			Clock:    client.Clock,
@@ -60,6 +59,20 @@ func main() {
 
 	for scanner.Scan() {
 		message := scanner.Text()
+
+		if message == "leave" {
+			fmt.Println("Leaving the service.")
+			client.Client.LeaveBroadcast(
+				// yes this way leaves the potential for the client sending fake user details to disconnect other uses
+				// but thats part of the fun of a chat service with friends isn't it?
+				context.Background(),
+				&pb.UserDetails{
+					Clock:    client.Clock,
+					Username: client.Username,
+				},
+			)
+			break
+		}
 
 		if !utf8.ValidString(message) {
 			fmt.Println("The message must be valid UTF-8.")
@@ -81,7 +94,7 @@ func (c *ChitChatClient) sendMessage(text string) {
 	logicalTime := c.Clock
 	c.Mutex.Unlock()
 
-	stream, err := c.Client.Post(
+	ack, err := c.Client.Post(
 		context.Background(),
 		&pb.ChatMessage{
 			Clock:    logicalTime,
@@ -93,11 +106,8 @@ func (c *ChitChatClient) sendMessage(text string) {
 		log.Println(err)
 		return
 	}
+	ack = ack // so go stops complaining
 
-	_, err = stream.Recv()
-	if err != nil && err != io.EOF {
-		log.Println(err)
-	}
 }
 
 func (c *ChitChatClient) receiveMessages(

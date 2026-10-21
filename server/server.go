@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	pb "handin3/gRPC"
 	"log"
 	"net"
@@ -35,7 +37,7 @@ func main() {
 	server.startServer()
 }
 
-func (s *ChitChatServer) Broadcast(
+func (s *ChitChatServer) JoinBroadcast(
 	user *pb.UserDetails,
 	stream grpc.ServerStreamingServer[pb.ChatMessage],
 ) error {
@@ -83,16 +85,13 @@ func (s *ChitChatServer) Broadcast(
 	}
 }
 
-func (s *ChitChatServer) Post(
-	message *pb.ChatMessage,
-	stream grpc.ServerStreamingServer[pb.ChatMessage],
-) error {
+func (s *ChitChatServer) Post(ctx context.Context, message *pb.ChatMessage) (*pb.Acknowledgement, error) {
 	if !utf8.ValidString(message.Msg) {
-		return nil
+		return &pb.Acknowledgement{}, errors.New("invalid message string")
 	}
 
 	if utf8.RuneCountInString(message.Msg) > 128 {
-		return nil
+		return &pb.Acknowledgement{}, errors.New("message too long")
 	}
 
 	s.broadcast(
@@ -102,7 +101,7 @@ func (s *ChitChatServer) Post(
 		false,
 	)
 
-	return stream.Send(message)
+	return &pb.Acknowledgement{}, nil
 }
 
 func (s *ChitChatServer) broadcast(

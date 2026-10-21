@@ -63,6 +63,8 @@ func main() {
 		if message == "leave" {
 			fmt.Println("Leaving the service.")
 			client.Client.LeaveBroadcast(
+				// yes this way leaves the potential for the client sending fake user details to disconnect other uses
+				// but thats part of the fun of a chat service with friends isn't it?
 				context.Background(),
 				&pb.UserDetails{
 					Clock:    client.Clock,

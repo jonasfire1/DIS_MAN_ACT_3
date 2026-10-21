@@ -13,9 +13,10 @@ message UserDetails {
     string username = 2;
 }
 
-message Empty {}
+message acknowledgement {}
 
 service chitchat {
-    rpc post (ChatMessage) returns (stream ChatMessage);
-    rpc broadcast (UserDetails) returns (stream ChatMessage);
+    rpc post (ChatMessage) returns (acknowledgement);
+    rpc joinBroadcast (UserDetails) returns (stream ChatMessage);
+    rpc leaveBroadcast (UserDetails) returns (acknowledgement);
 }

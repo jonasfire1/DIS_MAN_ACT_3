@@ -4,8 +4,11 @@ import (
 	pb "handin3/gRPC"
 	"log"
 	"net"
+	"os"
+	"os/signal"
 	"strconv"
 	"sync"
+	"syscall"
 	"unicode/utf8"
 
 	"google.golang.org/grpc"
@@ -183,9 +186,19 @@ func (s *ChitChatServer) startServer() {
 	grpcServer := grpc.NewServer()
 	pb.RegisterChitchatServer(grpcServer, s)
 
-	log.Println("Server SERVER_STARTED Port=5050")
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
-	if err := grpcServer.Serve(listener); err != nil {
-		log.Fatal(err)
-	}
+	go func() {
+		log.Println("Server SERVER_STARTED Port=5050")
+
+		if err := grpcServer.Serve(listener); err != nil {
+			log.Println(err)
+		}
+	}()
+
+	<-shutdown
+
+	log.Println("Server SERVER_STOPPED")
+	grpcServer.Stop()
 }

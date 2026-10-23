@@ -1,0 +1,24 @@
+2026/10/23 10:50:50 Server SERVER_STARTED Port=5050
+2026/10/23 10:51:15 Server CLIENT_CONNECTED Client=Alice
+2026/10/23 10:51:15 Server MESSAGE_BROADCAST Client=Alice LogicalTime=1 Message=Participant Alice joined Chit Chat at logical time 1
+2026/10/23 10:51:15 Server MESSAGE_DELIVERED Client=Alice LogicalTime=1 Message=Participant Alice joined Chit Chat at logical time 1
+2026/10/23 10:51:29 Server CLIENT_CONNECTED Client=Bob
+2026/10/23 10:51:29 Server MESSAGE_BROADCAST Client=Bob LogicalTime=2 Message=Participant Bob joined Chit Chat at logical time 2
+2026/10/23 10:51:29 Server MESSAGE_DELIVERED Client=Bob LogicalTime=2 Message=Participant Bob joined Chit Chat at logical time 2
+2026/10/23 10:51:29 Server MESSAGE_DELIVERED Client=Alice LogicalTime=2 Message=Participant Bob joined Chit Chat at logical time 2
+2026/10/23 10:51:40 Server CLIENT_CONNECTED Client=Charlie
+2026/10/23 10:51:40 Server MESSAGE_BROADCAST Client=Charlie LogicalTime=3 Message=Participant Charlie joined Chit Chat at logical time 3
+2026/10/23 10:51:40 Server MESSAGE_DELIVERED Client=Charlie LogicalTime=3 Message=Participant Charlie joined Chit Chat at logical time 3
+2026/10/23 10:51:40 Server MESSAGE_DELIVERED Client=Alice LogicalTime=3 Message=Participant Charlie joined Chit Chat at logical time 3
+2026/10/23 10:51:40 Server MESSAGE_DELIVERED Client=Bob LogicalTime=3 Message=Participant Charlie joined Chit Chat at logical time 3
+2026/10/23 10:52:06 Server MESSAGE_BROADCAST Client=Alice LogicalTime=6 Message=Hello everyone
+2026/10/23 10:52:06 Server MESSAGE_DELIVERED Client=Charlie LogicalTime=6 Message=Hello everyone
+2026/10/23 10:52:06 Server MESSAGE_DELIVERED Client=Alice LogicalTime=6 Message=Hello everyone
+2026/10/23 10:52:06 Server MESSAGE_DELIVERED Client=Bob LogicalTime=6 Message=Hello everyone
+2026/10/23 10:52:47 Server CLIENT_DISCONNECTED Client=Charlie
+2026/10/23 10:52:47 Server MESSAGE_BROADCAST Client=Charlie LogicalTime=7 Message=Participant Charlie left Chit Chat at logical time 7
+2026/10/23 10:52:47 Server MESSAGE_DELIVERED Client=Alice LogicalTime=7 Message=Participant Charlie left Chit Chat at logical time 7
+2026/10/23 10:52:47 Server MESSAGE_DELIVERED Client=Bob LogicalTime=7 Message=Participant Charlie left Chit Chat at logical time 7
+2026/10/23 10:54:10 Server SERVER_STOPPED
+2026/10/23 10:54:10 Server CLIENT_DISCONNECTED Client=Alice
+2026/10/23 10:54:10 Server MESSAGE_BROADCAST Client=Alice LogicalTime=8 Message=Participant Alice left Chit Chat at logical time 8

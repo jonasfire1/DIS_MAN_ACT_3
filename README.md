@@ -30,4 +30,4 @@ Hello everyone
 Press Ctrl+C in Charlies terminal. Alice and Bob should receive something like:
 [Logical time 6] Participant Charlie left Chit Chat at logical time 6
 
-alternativly, you can exit by writing simply writing leave
+alternativly, you can exit by simply writing leave

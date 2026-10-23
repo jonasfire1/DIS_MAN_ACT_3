@@ -129,12 +129,6 @@ func (c *ChitChatClient) receiveMessages(
 
 		c.Mutex.Unlock()
 
-		fmt.Printf(
-			"[Logical time %d] %s\n",
-			message.Clock,
-			message.Msg,
-		)
-
 		log.Printf(
 			"Client MESSAGE_RECEIVED Client=%s LogicalTime=%d Message=%s",
 			c.Username,
